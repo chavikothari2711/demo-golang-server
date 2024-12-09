@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/chavikothari2711/GoLang-Server/internal/database"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
-	_ "github.com/go-pg/pg"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+
+	"github.com/chavikothari2711/demo-golang-server/internal/database"
 )
 
 type apiConfig struct {
