@@ -12,13 +12,13 @@ import (
 	"github.com/google/uuid"
 )
 
-const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, created_at, updated_at, name,email)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, created_at, updated_at, name, email
+const createUsers = `-- name: CreateUsers :one
+INSERT INTO users (id, created_at, updated_at, name,email, api_key)
+VALUES ($1, $2, $3, $4, $5, encode(sha256(random()::text::bytea),'hex'))
+RETURNING id, created_at, updated_at, name, email, api_key
 `
 
-type CreateUserParams struct {
+type CreateUsersParams struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -26,8 +26,8 @@ type CreateUserParams struct {
 	Email     string
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
+func (q *Queries) CreateUsers(ctx context.Context, arg CreateUsersParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUsers,
 		arg.ID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -41,6 +41,75 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Name,
 		&i.Email,
+		&i.ApiKey,
+	)
+	return i, err
+}
+
+const getUserByAPIKeys = `-- name: GetUserByAPIKeys :one
+SELECT id, created_at, updated_at, name, email, api_key FROM users WHERE api_key = $1
+`
+
+func (q *Queries) GetUserByAPIKeys(ctx context.Context, apiKey string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByAPIKeys, apiKey)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Email,
+		&i.ApiKey,
+	)
+	return i, err
+}
+
+const getUsers = `-- name: GetUsers :one
+SELECT id, created_at, updated_at, name, email, api_key FROM users WHERE email = $1
+`
+
+func (q *Queries) GetUsers(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUsers, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Email,
+		&i.ApiKey,
+	)
+	return i, err
+}
+
+const updateUsers = `-- name: UpdateUsers :one
+UPDATE users 
+SET name = $1, email = $2, updated_at = $3 WHERE api_key = $4
+RETURNING id, created_at, updated_at, name, email, api_key
+`
+
+type UpdateUsersParams struct {
+	Name      string
+	Email     string
+	UpdatedAt time.Time
+	ApiKey    string
+}
+
+func (q *Queries) UpdateUsers(ctx context.Context, arg UpdateUsersParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUsers,
+		arg.Name,
+		arg.Email,
+		arg.UpdatedAt,
+		arg.ApiKey,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+		&i.Email,
+		&i.ApiKey,
 	)
 	return i, err
 }

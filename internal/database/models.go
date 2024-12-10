@@ -10,10 +10,28 @@ import (
 	"github.com/google/uuid"
 )
 
+type Blog struct {
+	ID         uuid.UUID
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Body       string
+	Title      string
+	Visibility uuid.UUID
+	UserID     uuid.UUID
+}
+
+type Blogtype struct {
+	ID             uuid.UUID
+	Visibilitytype string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
 type User struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string
 	Email     string
+	ApiKey    string
 }
