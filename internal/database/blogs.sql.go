@@ -53,12 +53,17 @@ func (q *Queries) CreateBlogs(ctx context.Context, arg CreateBlogsParams) (Blog,
 
 const deleteBlog = `-- name: DeleteBlog :one
 DELETE FROM blogs
-WHERE id = $1
+WHERE id = $1 and user_id = $2
 RETURNING id, created_at, updated_at, body, title, visibility, user_id
 `
 
-func (q *Queries) DeleteBlog(ctx context.Context, id uuid.UUID) (Blog, error) {
-	row := q.db.QueryRowContext(ctx, deleteBlog, id)
+type DeleteBlogParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteBlog(ctx context.Context, arg DeleteBlogParams) (Blog, error) {
+	row := q.db.QueryRowContext(ctx, deleteBlog, arg.ID, arg.UserID)
 	var i Blog
 	err := row.Scan(
 		&i.ID,
@@ -72,23 +77,39 @@ func (q *Queries) DeleteBlog(ctx context.Context, id uuid.UUID) (Blog, error) {
 	return i, err
 }
 
-const getAllTypeBlogs = `-- name: GetAllTypeBlogs :one
+const getAllTypeBlogs = `-- name: GetAllTypeBlogs :many
 SELECT id, created_at, updated_at, body, title, visibility, user_id FROM blogs WHERE visibility=$1
 `
 
-func (q *Queries) GetAllTypeBlogs(ctx context.Context, visibility uuid.UUID) (Blog, error) {
-	row := q.db.QueryRowContext(ctx, getAllTypeBlogs, visibility)
-	var i Blog
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Body,
-		&i.Title,
-		&i.Visibility,
-		&i.UserID,
-	)
-	return i, err
+func (q *Queries) GetAllTypeBlogs(ctx context.Context, visibility uuid.UUID) ([]Blog, error) {
+	rows, err := q.db.QueryContext(ctx, getAllTypeBlogs, visibility)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Blog
+	for rows.Next() {
+		var i Blog
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Body,
+			&i.Title,
+			&i.Visibility,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getBlog = `-- name: GetBlog :one
@@ -129,29 +150,45 @@ func (q *Queries) GetBlogByTilte(ctx context.Context, title string) (Blog, error
 	return i, err
 }
 
-const getUserBlogs = `-- name: GetUserBlogs :one
+const getUserBlogs = `-- name: GetUserBlogs :many
 SELECT id, created_at, updated_at, body, title, visibility, user_id FROM blogs WHERE user_id = $1
 `
 
-func (q *Queries) GetUserBlogs(ctx context.Context, userID uuid.UUID) (Blog, error) {
-	row := q.db.QueryRowContext(ctx, getUserBlogs, userID)
-	var i Blog
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Body,
-		&i.Title,
-		&i.Visibility,
-		&i.UserID,
-	)
-	return i, err
+func (q *Queries) GetUserBlogs(ctx context.Context, userID uuid.UUID) ([]Blog, error) {
+	rows, err := q.db.QueryContext(ctx, getUserBlogs, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Blog
+	for rows.Next() {
+		var i Blog
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Body,
+			&i.Title,
+			&i.Visibility,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateUserBlog = `-- name: UpdateUserBlog :one
 UPDATE blogs
 SET body = $1, title = $2, visibility = $3
-WHERE id = $4
+WHERE id = $4 and user_id = $5
 RETURNING id, created_at, updated_at, body, title, visibility, user_id
 `
 
@@ -160,6 +197,7 @@ type UpdateUserBlogParams struct {
 	Title      string
 	Visibility uuid.UUID
 	ID         uuid.UUID
+	UserID     uuid.UUID
 }
 
 func (q *Queries) UpdateUserBlog(ctx context.Context, arg UpdateUserBlogParams) (Blog, error) {
@@ -168,6 +206,7 @@ func (q *Queries) UpdateUserBlog(ctx context.Context, arg UpdateUserBlogParams) 
 		arg.Title,
 		arg.Visibility,
 		arg.ID,
+		arg.UserID,
 	)
 	var i Blog
 	err := row.Scan(

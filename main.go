@@ -74,6 +74,10 @@ func main() {
 	v1Router.Get("/visibility-types", apiCfg.handlerGetAllVisibilityType)
 	// blog routes
 	v1Router.Post("/blogs", apiCfg.middlewareAuth(apiCfg.handleCreateBlogs))
+	v1Router.Get("/blogs/user", apiCfg.middlewareAuth(apiCfg.handleGetUserBlogs))
+	v1Router.Get("/blogs", apiCfg.handleGetAllBlogs)
+	v1Router.Delete("/blogs", apiCfg.middlewareAuth(apiCfg.handleDeleteBlog))
+	v1Router.Put("/blogs", apiCfg.middlewareAuth(apiCfg.handleUpdateBlog))
 
 	router.Mount("/v1", v1Router)
 
