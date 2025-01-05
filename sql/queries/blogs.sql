@@ -1,6 +1,6 @@
 -- name: CreateBlogs :one
-INSERT INTO blogs (id, created_at, updated_at, body, title, user_id)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO blogs (id, created_at, updated_at, body, title, user_id,visibility)
+VALUES ($1, $2, $3, $4, $5, $6,$7)
 RETURNING *;
 
 -- name: GetUserBlogs :one
@@ -8,6 +8,9 @@ SELECT * FROM blogs WHERE user_id = $1;
 
 -- name: GetBlog :one
 SELECT * FROM blogs WHERE id=$1;
+
+-- name: GetBlogByTilte :one
+Select * FROM blogs WHERE title=$1;
 
 -- name: UpdateUserBlog :one
 UPDATE blogs

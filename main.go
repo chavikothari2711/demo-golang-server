@@ -61,11 +61,20 @@ func main() {
 	}))
 
 	v1Router := chi.NewRouter()
+
+	//health routes
 	v1Router.Get("/health", handlerReadiness)
 	v1Router.Get("/error", handlerError)
+	// users routes
 	v1Router.Post("/users", apiCfg.handlerCreateUser)
-	v1Router.Put("/users", apiCfg.handlerUpdateUser)
-	v1Router.Get("/users", apiCfg.handlerGetUser)
+	v1Router.Put("/users", apiCfg.middlewareAuth(apiCfg.handlerUpdateUser))
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerGetUser))
+	// visibilityType routes
+	v1Router.Post("/visibility", apiCfg.handlerCreateVisibilityType)
+	v1Router.Get("/visibility-types", apiCfg.handlerGetAllVisibilityType)
+	// blog routes
+	v1Router.Post("/blogs", apiCfg.middlewareAuth(apiCfg.handleCreateBlogs))
+
 	router.Mount("/v1", v1Router)
 
 	srv := &http.Server{

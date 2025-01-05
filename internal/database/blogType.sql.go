@@ -7,16 +7,31 @@ package database
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 const createBlogVisibilityType = `-- name: CreateBlogVisibilityType :one
-INSERT INTO blogType (visibilityType)
-VALUES ($1)
+INSERT INTO blogType (visibilityType,id, created_at, updated_at)
+VALUES ($1,$2,$3,$4)
 RETURNING id, visibilitytype, created_at, updated_at
 `
 
-func (q *Queries) CreateBlogVisibilityType(ctx context.Context, visibilitytype string) (Blogtype, error) {
-	row := q.db.QueryRowContext(ctx, createBlogVisibilityType, visibilitytype)
+type CreateBlogVisibilityTypeParams struct {
+	Visibilitytype string
+	ID             uuid.UUID
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+func (q *Queries) CreateBlogVisibilityType(ctx context.Context, arg CreateBlogVisibilityTypeParams) (Blogtype, error) {
+	row := q.db.QueryRowContext(ctx, createBlogVisibilityType,
+		arg.Visibilitytype,
+		arg.ID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	var i Blogtype
 	err := row.Scan(
 		&i.ID,
@@ -27,20 +42,36 @@ func (q *Queries) CreateBlogVisibilityType(ctx context.Context, visibilitytype s
 	return i, err
 }
 
-const getAllVisibilityType = `-- name: GetAllVisibilityType :one
+const getAllVisibilityType = `-- name: GetAllVisibilityType :many
 SELECT id, visibilitytype, created_at, updated_at FROM blogType
 `
 
-func (q *Queries) GetAllVisibilityType(ctx context.Context) (Blogtype, error) {
-	row := q.db.QueryRowContext(ctx, getAllVisibilityType)
-	var i Blogtype
-	err := row.Scan(
-		&i.ID,
-		&i.Visibilitytype,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) GetAllVisibilityType(ctx context.Context) ([]Blogtype, error) {
+	rows, err := q.db.QueryContext(ctx, getAllVisibilityType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Blogtype
+	for rows.Next() {
+		var i Blogtype
+		if err := rows.Scan(
+			&i.ID,
+			&i.Visibilitytype,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getVisibilityId = `-- name: GetVisibilityId :one

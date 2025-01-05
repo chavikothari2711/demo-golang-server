@@ -13,18 +13,19 @@ import (
 )
 
 const createBlogs = `-- name: CreateBlogs :one
-INSERT INTO blogs (id, created_at, updated_at, body, title, user_id)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO blogs (id, created_at, updated_at, body, title, user_id,visibility)
+VALUES ($1, $2, $3, $4, $5, $6,$7)
 RETURNING id, created_at, updated_at, body, title, visibility, user_id
 `
 
 type CreateBlogsParams struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Body      string
-	Title     string
-	UserID    uuid.UUID
+	ID         uuid.UUID
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Body       string
+	Title      string
+	UserID     uuid.UUID
+	Visibility uuid.UUID
 }
 
 func (q *Queries) CreateBlogs(ctx context.Context, arg CreateBlogsParams) (Blog, error) {
@@ -35,6 +36,7 @@ func (q *Queries) CreateBlogs(ctx context.Context, arg CreateBlogsParams) (Blog,
 		arg.Body,
 		arg.Title,
 		arg.UserID,
+		arg.Visibility,
 	)
 	var i Blog
 	err := row.Scan(
@@ -95,6 +97,25 @@ SELECT id, created_at, updated_at, body, title, visibility, user_id FROM blogs W
 
 func (q *Queries) GetBlog(ctx context.Context, id uuid.UUID) (Blog, error) {
 	row := q.db.QueryRowContext(ctx, getBlog, id)
+	var i Blog
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Body,
+		&i.Title,
+		&i.Visibility,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getBlogByTilte = `-- name: GetBlogByTilte :one
+Select id, created_at, updated_at, body, title, visibility, user_id FROM blogs WHERE title=$1
+`
+
+func (q *Queries) GetBlogByTilte(ctx context.Context, title string) (Blog, error) {
+	row := q.db.QueryRowContext(ctx, getBlogByTilte, title)
 	var i Blog
 	err := row.Scan(
 		&i.ID,
